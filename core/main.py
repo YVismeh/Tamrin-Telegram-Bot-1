@@ -1,70 +1,121 @@
 import telebot
 import os
-from telebot import types
-from telebot import apihelper
+from telebot.types import *
 
-
-API_TOKEN = os.environ.get("API_TOKEN")
-
+API_TOKEN = os.environ.get('API_TOKEN')
 bot = telebot.TeleBot(API_TOKEN)
 
-
-
+user = {}
+course = {
+    "spring": ["ccna", "mcsa", "python for beginner"],
+    "summer": ["Sql Server", "MongoDB", "python for advanced"],
+    "autumn": ["icdl", "seller", "photoshop"],
+    "winter": ["photoshop", "c", "after effect", "3D max"],
+}
 
 @bot.message_handler(commands=["start"])
-def buttons(message):
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=3)
-    btn1 = types.KeyboardButton("Courses")
-    markup.add(btn1)
-    bot.reply_to(message, "select the course yu want", reply_markup=markup)
+def start_message(message):
 
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, input_field_placeholder="please select one of our options")
+    markup.add(
+        KeyboardButton("Courses"),
+        KeyboardButton("Home"),
+        KeyboardButton("Call with Ac"),
+    )
+    user = {} # rewrite user to clear it because we don't need old infos and write them again 
+    bot.send_message(message.chat.id, 'select one Our options', reply_markup=markup)
 
+def see_course_season(message):
+    
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, input_field_placeholder="please select one season", row_width=4)
+    markup.add(
+        KeyboardButton("spring"),
+        KeyboardButton("summer"),
+        KeyboardButton("autumn"),
+        KeyboardButton("winter"),
+    )
+    markup.add(KeyboardButton("Home"))
+    bot.send_message(message.chat.id, 'select one season', reply_markup=markup)
 
+def see_calling_and_info(message):
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, input_field_placeholder="for back to home press Home button")
+    markup.add(KeyboardButton("Home"))
+    bot.send_message(message.chat.id, 'for call to Ac give This number\n**09123456789**\n', reply_markup=markup)
 
-singin_info = {}
+def spring_courses(message):
+    markup = InlineKeyboardMarkup()
+    for cr in course["spring"]:
+        markup.add(InlineKeyboardButton(cr, callback_data=cr))
+    bot.send_message(message.chat.id, 'for register course click on it', reply_markup=markup)
 
-def sign_in_name(message):
-   bot.reply_to(message, "enter your name:")
-   bot.register_next_step_handler(message, sign_in_number)
+def summer_courses(message):
+    markup = InlineKeyboardMarkup()
+    for cr in course["summer"]:
+        markup.add(InlineKeyboardButton(cr, callback_data=cr))
+    bot.send_message(message.chat.id, 'for register course click on it', reply_markup=markup)
 
-def sign_in_number(message):
-   singin_info["name"] = message.text
-   bot.reply_to(message, "enter your number:")
-   bot.register_next_step_handler(message, sign_in_code)
+def autumn_courses(message):
+    markup = InlineKeyboardMarkup()
+    for cr in course["autumn"]:
+        markup.add(InlineKeyboardButton(cr, callback_data=cr))
+    bot.send_message(message.chat.id, 'for register course click on it', reply_markup=markup)
 
-def sign_in_code(message):
-   singin_info["number"] = message.text
-   bot.reply_to(message, "enter your code:")
-   bot.register_next_step_handler(message, sign_in_end)
+def winter_courses(message):
+    markup = InlineKeyboardMarkup()
+    for cr in course["winter"]:
+        markup.add(InlineKeyboardButton(cr, callback_data=cr))
+    bot.send_message(message.chat.id, 'for register course click on it', reply_markup=markup)
 
-def sign_in_end(message):
-   singin_info["code"] = message.text
-   bot.reply_to(message, "sign in hase done!")
-   with open("./sign_in.txt", "a") as file:
-      for key in singin_info:
-            file.write(singin_info[key]+"\n")
+@bot.callback_query_handler(func=lambda call: True )
+def handle_register_course(call):
+    user["course"] = call.data
+    message = call.message
+    text = """
+    please insert your name and family
+"""
+    bot.reply_to(message, text )
+    bot.register_next_step_handler(message, insert_basic_info)
 
+def insert_basic_info(message):
+    user["info"] = message.text
+    text = """
+    please insert your phone number
+    """
+    bot.reply_to(message, text)
+    bot.register_next_step_handler(message, insert_phone_number)
 
-courses_list = ["Home 🏠", "courses1", "courses2", "courses3", "courses4", "courses5", "courses6", "courses7"]
-def courses(message):
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=3)
-    for p in courses_list:
-        markup.add(types.KeyboardButton(p))
-    bot.reply_to(message, "please select one of courses to sing up", reply_markup=markup)
-
-
+def insert_phone_number(message):
+    user["phone"] = message.text
+    text = """
+    pre_register complete successfully
+"""
+    bot.reply_to(message, text)
+    with open("./export/register.txt", "a") as file:
+        file.write(
+            f"{user['season']}\n=============\n{user['info']}\n=============\n{user['phone']}\n=============\n{user['course']}\n***********************\n"
+            )
+    start_message(message)
 
 @bot.message_handler(func=lambda message: True)
-def call_back(message):
+def other_message(message):
     if message.text == "Courses":
-       courses(message)
-    if message.text == "Home 🏠":
-        buttons(message)
-    if message.text == "courses1":
-        sign_in_name(message)
-
-
-
+        see_course_season(message)
+    elif message.text == "Home":
+        start_message(message)
+    elif message.text == "Call with Ac":
+        see_calling_and_info(message)
+    elif message.text == "spring":
+        user["season"] = message.text
+        spring_courses(message)
+    elif message.text == "summer":
+        user["season"] = message.text
+        summer_courses(message)
+    elif message.text == "autumn":
+        user["season"] = message.text
+        autumn_courses(message)
+    elif message.text == "winter":
+        user["season"] = message.text
+        winter_courses(message)
 
 
 bot.infinity_polling()
