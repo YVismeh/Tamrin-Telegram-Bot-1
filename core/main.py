@@ -90,7 +90,7 @@ def insert_phone_number(message):
     pre_register complete successfully
 """
     bot.reply_to(message, text)
-    with open("./export/register.txt", "a") as file:
+    with open("./register.txt", "a") as file:
         file.write(
             f"{user['season']}\n=============\n{user['info']}\n=============\n{user['phone']}\n=============\n{user['course']}\n***********************\n"
             )
